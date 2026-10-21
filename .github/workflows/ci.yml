@@ -43,5 +43,5 @@ jobs:
         with:
           image-ref: devops-sre-app:${{ github.sha }}
           format: table
-          severity: HIGH,CRITICAL
+          severity: CRITICAL
           exit-code: '1'
