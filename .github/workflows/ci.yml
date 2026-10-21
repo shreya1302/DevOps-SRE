@@ -34,3 +34,14 @@ jobs:
 
       - name: Run Bandit security scan
         run: bandit -r app
+
+      - name: Build Docker image
+        run: docker build -t devops-sre-app:${{ github.sha }} .
+
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: devops-sre-app:${{ github.sha }}
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: '1'
