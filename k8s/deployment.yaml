@@ -22,6 +22,6 @@ spec:
     spec:
       containers:
         - name: devops-sre-app
-          image: ghcr.io/shreya1302/devops-sre-app:latest
+          image: ghcr.io/shreya1302/devops-sre-app:sha-a2509dbc302776e276ac0f7b2d3730abf43fa6ec
           ports:
             - containerPort: 8080
