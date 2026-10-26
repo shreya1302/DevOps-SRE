@@ -5,9 +5,11 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'k8s/deployment.yaml'
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -44,3 +46,22 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Update Kubernetes manifest image tag
+        env:
+          IMAGE_TAG: sha-${{ github.sha }}
+          IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/devops-sre-app
+        run: |
+          sed -i "s|image: ghcr.io/shreya1302/devops-sre-app:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" k8s/deployment.yaml
+
+      - name: Commit and push manifest update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add k8s/deployment.yaml
+          if git diff --cached --quiet; then
+            echo "Manifest already has the current image tag."
+          else
+            git commit -m "Update Kubernetes image tag"
+            git push origin HEAD:main
+          fi
