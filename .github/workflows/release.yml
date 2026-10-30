@@ -1,5 +1,4 @@
-
-name: Release - Build and Publish to GHCR
+﻿name: Release - Build and Publish to GHCR
 
 on:
   push:
@@ -9,7 +8,7 @@ on:
       - 'k8s/deployment.yaml'
 
 permissions:
-  contents: write
+  contents: read
   packages: write
 
 jobs:
@@ -52,16 +51,18 @@ jobs:
           IMAGE_TAG: sha-${{ github.sha }}
           IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/devops-sre-app
         run: |
-          sed -i "s|image: ghcr.io/shreya1302/devops-sre-app:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" k8s/deployment.yaml
+          sed -i "s|image: .*devops-sre-app:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" k8s/deployment.yaml
 
-      - name: Commit and push manifest update
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add k8s/deployment.yaml
-          if git diff --cached --quiet; then
-            echo "Manifest already has the current image tag."
-          else
-            git commit -m "Update Kubernetes image tag"
-            git push origin HEAD:main
-          fi
+      - name: Create Pull Request for manifest update
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.RELEASE_AUTOMATION_TOKEN }}
+          branch: automation/update-k8s-image-tag
+          delete-branch: true
+          add-paths: k8s/deployment.yaml
+          commit-message: "Update Kubernetes image tag"
+          title: "Automated Kubernetes image tag update"
+          body: |
+            This PR was automatically created by the release workflow.
+
+            It updates the Kubernetes deployment manifest to use the newly published Docker image.
