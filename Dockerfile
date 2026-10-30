@@ -1,17 +1,20 @@
+﻿FROM python:3.12-slim-trixie
 
-FROM python:3.12-slim-trixie
+WORKDIR /app
+
+RUN apt-get update && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-WORKDIR /app
-RUN apt-get update && apt-get upgrade -y \
-    && rm -rf /var/lib/apt/lists/*
 RUN useradd --system --no-create-home appuser
 
 COPY --chown=appuser:appuser app/app.py ./app.py
 
 USER appuser
+
+LABEL org.opencontainers.image.description="DevOps-SRE application release 3"
 
 EXPOSE 8080
 
