@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: devops-sre-reader
+  namespace: devops-sre
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: devops-sre-pod-reader
+  namespace: devops-sre
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: devops-sre-pod-reader-binding
+  namespace: devops-sre
+subjects:
+  - kind: ServiceAccount
+    name: devops-sre-reader
+    namespace: devops-sre
+roleRef:
+  kind: Role
+  name: devops-sre-pod-reader
+  apiGroup: rbac.authorization.k8s.io
