@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: devops-sre-network-policy
+  namespace: devops-sre
+spec:
+  podSelector:
+    matchLabels:
+      app: devops-sre-app
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: devops-sre
+      ports:
+        - protocol: TCP
+          port: 8080
