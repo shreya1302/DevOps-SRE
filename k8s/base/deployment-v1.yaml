@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-sre-app-v1
+  labels:
+    app: devops-sre-app
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-sre-app
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: devops-sre-app
+        version: v1
+    spec:
+      initContainers:
+        - name: init-setup
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - echo "Initialization completed successfully" > /work/init-status.txt
+          resources:
+            requests:
+              memory: "16Mi"
+            limits:
+              memory: "64Mi"
+          volumeMounts:
+            - name: init-data
+              mountPath: /work
+      containers:
+        - name: devops-sre-app
+          image: ghcr.io/shreya1302/devops-sre-app:sha-f2f262bfee7ab44c7bb3f382e6d14ef49e4b14d5
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: devops-sre-config
+            - secretRef:
+                name: devops-sre-secret
+          volumeMounts:
+            - name: init-data
+              mountPath: /etc/devops-sre/init
+              readOnly: true
+          resources:
+            requests:
+              memory: "128Mi"
+            limits:
+              memory: "400Mi"
+      volumes:
+        - name: init-data
+          emptyDir: {}

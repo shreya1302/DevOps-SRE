@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: devops-sre-quota
+  namespace: devops-sre
+spec:
+  hard:
+    pods: "6"
+    requests.memory: "1Gi"
+    limits.memory: "2Gi"
