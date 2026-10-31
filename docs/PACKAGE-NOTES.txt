@@ -1,0 +1,4 @@
+DevSecOps & SRE assessment documentation package.
+Contains root README, eight supporting documents, four editable Mermaid diagrams and screenshot guidance.
+Merge into the existing repository; do not overwrite application source, workflows, Kubernetes manifests or existing screenshots.
+Known limitations and latest monitoring-health evidence are disclosed in the documents.

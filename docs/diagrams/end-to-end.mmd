@@ -1,0 +1,12 @@
+flowchart TD
+ A[Developer PR] --> B[GitHub Actions checks]
+ B -->|pass| C[Merge main]
+ C --> D[Release build]
+ D --> E[GHCR image]
+ E --> F[Manifest update PR]
+ F --> G[Argo CD sync]
+ G --> H[Kubernetes workloads]
+ H --> I[Prometheus metrics]
+ H --> J[Alloy to Loki logs]
+ I --> K[Grafana]
+ J --> K

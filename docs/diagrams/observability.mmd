@@ -1,0 +1,9 @@
+flowchart LR
+ A[Application Pods] -->|metrics| B[Prometheus]
+ C[Node exporters] --> B
+ B --> D[Grafana]
+ A -->|stdout/stderr| E[Alloy]
+ E --> F[Loki]
+ F --> D
+ D --> G[Unready alert]
+ D --> H[OOMKilled alert]

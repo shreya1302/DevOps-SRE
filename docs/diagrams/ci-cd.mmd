@@ -1,0 +1,13 @@
+flowchart TD
+ A[Feature branch] --> B[PR to main]
+ B --> C[pytest]
+ C --> D[Flake8]
+ D --> E[Bandit]
+ E --> F[Docker build]
+ F --> G[Trivy]
+ G --> H[Gitleaks]
+ H --> I[Required checks pass]
+ I --> J[Merge main]
+ J --> K[Build SHA image]
+ K --> L[Push GHCR]
+ L --> M[Manifest update PR]
