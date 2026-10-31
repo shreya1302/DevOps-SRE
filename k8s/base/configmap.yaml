@@ -6,4 +6,4 @@ metadata:
 data:
   APP_ENV: "development"
   LOG_LEVEL: "INFO"
-  APP_MESSAGE: "ConfigMap mounted successfully"
+  APP_MESSAGE: "Updated automatically by ArgoCD GitOps"
