@@ -1,0 +1,11 @@
+flowchart TD
+ A[Git main / k8s/base] --> B[Argo CD]
+ B --> C[devops-sre namespace]
+ C --> D[Deployment v1]
+ C --> E[Deployment v2]
+ C --> F[Deployment v3]
+ D --> G[Shared Service]
+ E --> G
+ F --> G
+ H[ConfigMap / Secret / initContainer] --> C
+ I[RBAC / Quota / NetworkPolicy] --> C

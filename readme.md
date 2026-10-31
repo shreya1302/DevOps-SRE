@@ -1,78 +1,71 @@
-# DevSecOps & Site Reliability Engineering (SRE) Assessment
+# DevSecOps & Site Reliability Engineering Assessment
 
-## Overview
+**Repository:** https://github.com/shreya1302/DevOps-SRE  
+**Environment:** Windows 11, Docker Desktop Kubernetes, PowerShell  
+**Application:** Python HTTP microservice with an intentional memory leak  
+**Stack:** Docker, GitHub Actions, GHCR, Kubernetes, Argo CD, Helm, Prometheus, Grafana, Loki and Grafana Alloy.
 
-You have been assigned to deploy and manage a new microservice for our infrastructure. The application is a lightweight Python service that is known to have a memory leak, it starts at around 100MB and slowly increases its memory footprint to 1GB over the course of 5 minutes. It also generates standard application logs. 
+## Objective
+Build a secure delivery pipeline, deploy three image versions through GitOps, and monitor application health, resource usage and logs. The application container memory limit is explicitly **400Mi**, as required by the assessment.
 
-Your mission is to build a secure delivery pipeline, implement a GitOps deployment strategy, and set up robust observability and alerting to catch the application when it inevitably crashes.
+## Architecture
+```mermaid
+flowchart TD
+ A[Developer PR] --> B[GitHub Actions: tests, lint, SAST, scans]
+ B -->|checks pass| C[Merge to main]
+ C --> D[Release workflow]
+ D --> E[Build SHA image and publish to GHCR]
+ E --> F[Manifest update PR]
+ F --> G[Argo CD sync]
+ G --> H[Kubernetes: 3 Deployments + shared Service]
+ H --> I[Prometheus metrics]
+ H --> J[Alloy logs to Loki]
+ I --> K[Grafana]
+ J --> K
+```
 
-**Rules:**
-- Everything should be done using free/open-source tools running locally (e.g., Minikube, Kind, K3d). No cloud accounts are required.
-- Security controls are currently enforced **only** in the CI/CD pipeline. 
-- Provide clear documentation on your setup, architecture, and instructions to reproduce your environment.
+## Implemented
+- Minimal Python 3.12 slim-based Docker image, non-root runtime and health check.
+- PR workflow: pytest, Flake8, Bandit, Docker build, Trivy and Gitleaks.
+- Protected `main` branch: PR required and `Test and Code Quality` required status check.
+- Release workflow publishes SHA-tagged images to `ghcr.io/shreya1302/devops-sre-app` and opens a manifest update PR.
+- Argo CD tracks `main`, path `k8s/base`, with automated sync, pruning and self-healing.
+- Three Deployments (`v1`, `v2`, `v3`) and one shared Service.
+- Namespace, ConfigMap, demo Secret, initContainer, RBAC, NetworkPolicy manifest and ResourceQuota.
+- Application memory request `128Mi`, limit `400Mi`; OOMKilled events with exit code 137 were observed.
+- Prometheus/Grafana Helm setup, dashboard and alert rules; Alloy/Loki log aggregation configured.
 
----
+## Repository areas
+`app/`, `test/`, `.github/workflows/`, `k8s/base/`, Dockerfile, and Helm values files `monitoring-values.yaml`, `loki-values.yaml`, `alloy-values.yaml`.
 
-## Task 1: Dockerization & Secure CI/CD Pipeline
+## Important validation qualification
+Earlier validation showed a populated Grafana dashboard and a Loki Explore query returning 194 log lines. However, the latest captured cluster output on 31 October 2026 showed the `monitoring` Helm release as `failed`, Grafana at `2/3` containers ready and Prometheus still initializing. Revalidate monitoring before claiming the stack is currently healthy.
 
-The application code is provided in the repository. Your first task is to containerize it and build a secure delivery pipeline.
+## Known gaps
+- Earlier Trivy result: 44 HIGH, 0 CRITICAL; HIGH findings remain to review.
+- NetworkPolicy manifest applied, enforcement not verified with local `kindnet`.
+- Node disk usage panel skipped because the query returned no data.
+- Loki filesystem storage used `/tmp` with persistence disabled.
+- Grafana alert rules saved, but no notification contact point configured.
+- Dashboard and alert rules were created in Grafana UI and should be exported/provisioned into Git.
+- Local resource pressure caused intermittent monitoring readiness/restarts.
 
-1. **Dockerize the Application:**
-   - Create an **optimal** `Dockerfile` for the provided Python application.
-   - Keep the image size as small as possible while ensuring the application runs correctly.
-   - Follow container security best practices (e.g., use a minimal base image, run as a non-root user).
-2. **Multi-Branch Secure CI/CD Architecture (GitHub Actions or similar):**
-   - **Branch Protection:** Enforce a policy where direct commits to the `main` branch are restricted. All changes must go through a Pull Request.
-   - **Working Branch Pipeline:** Create a pipeline that is triggered only when a Pull Request is opened against the main branch.
-     - It should build and test the image.
-     - Integrate code quality and security scanning tools: **Code Linting** (e.g., Flake8), **Secret Scanning** (Optional), **SAST** (Static Application Security Testing(ignore "0.0.0.0" related errors)), Unit test case(pytest) and **Container Image Vulnerability Scanning**.
-     - All tests, linting, and security scans must pass successfully before the Pull Request can be merged into main branch.
-   - **Release Pipeline (`main` branch):** Create a second pipeline that only triggers when a PR is merged into `main`.
-     - This pipeline should build the final images, push them to a container registry (e.g., Docker Hub, GHCR), and automatically update the image tags in the Kubernetes deployment manifests in your repository.
+## Quick checks
+```powershell
+git status
+kubectl config current-context
+kubectl get applications -n argocd
+kubectl get deployments,pods,svc -n devops-sre
+kubectl get pods -n monitoring
+helm list -n monitoring
+```
 
----
-
-## Task 2: GitOps Deployment with ArgoCD
-
-We use GitOps to manage our Kubernetes clusters. You need to automate the deployment of the image you just pushed.
-
-1. **ArgoCD Setup:**
-   - Install and configure ArgoCD on your local Kubernetes cluster.
-2. **Kubernetes Manifests:**
-   - Since your pipeline builds multiple image versions, you must run them simultaneously in your cluster. Create **three separate Deployments** (one for each image version built by your matrix).
-   - Create a **single shared Kubernetes Service** that acts as a load balancer to route traffic evenly across all three Deployments.
-   - **Crucial:** Since the application has a known memory leak (designed to reach 500MB over 2 minutes), you must configure **Resource Requests and Limits** for all Pods. Set the memory limit explicitly to `400Mi` so that the Kubernetes scheduler terminates the pod (`OOMKilled`) well before it consumes node resources.
-3. **Automated Deployment & Image Updates:**
-   - Configure ArgoCD to track your repository and automatically deploy/sync the application.
-   - You may choose **any method** to automate the updating of the image tag in your deployment environment. For example, you could configure your CI/CD pipeline to automatically commit and push the new image tag back to your Git configuration files after a successful build.
-4. **Enterprise Best Practices & Innovation:**
-   - Instead of just a basic deployment, design and implement a production-grade Kubernetes footprint using your own innovation. 
-   - You must implement at least the following, but you have full creative freedom on how to securely configure them: **Namespaces**, **ConfigMaps & Secrets**, **initContainers**, **RBAC** (ServiceAccounts, Roles), **NetworkPolicies**, and **ResourceQuotas**.
-
----
-
-## Task 3: Observability, Logging, & Alerting
-
-Visibility into the cluster and the application's behavior is critical.
-
-1. **Comprehensive Observability Stack:**
-   - Install **Prometheus** and **Grafana** in your cluster(via Helm) for metrics monitoring.
-   - Build a comprehensive Grafana Dashboard that displays (You Can also import them):
-     - **Node Metrics:** CPU, Memory, and Disk usage.
-     - **Pod & Cluster Metrics:** CPU and Memory usage per pod.
-   - **Log Aggregation / Tracing:** Since Prometheus only handles metrics, you must implement an additional observability stack of your choice (e.g., ELK/EFK stack, Loki, or similar) to capture and aggregate the application logs centrally.
-2. **Alerting:**
-   - Configure **Grafana Alerts** to trigger notifications for the following scenarios:
-     - **Application Health Check Failures** (Pod goes down or becomes unready).
-     - **OOMKilled Events** (Triggered when the application hits its memory limit).
-   - *Bonus:* Route these alerts to a Slack webhook or an email address.
-
----
-
-## Evaluation Criteria
-
-- **Security Posture:** Quality of the Dockerfile and thoroughness of the CI/CD security gates.
-- **GitOps Implementation:** A working ArgoCD setup that successfully detects and deploys changes.
-- **Kubernetes Expertise:** Correct implementation of resource limits ensuring the `OOMKilled` behavior occurs as intended.
-- **Observability:** A functional, well-designed Grafana dashboard.
-- **Reliability Engineering:** Accurate and functional alerting rules for health checks and OOM limits.
+## Documents
+- [Architecture](docs/architecture.md)
+- [Setup and installation](docs/setup-and-installation.md)
+- [Docker and CI/CD](docs/docker-and-cicd.md)
+- [Kubernetes and Argo CD](docs/kubernetes-and-argocd.md)
+- [Monitoring, logging and alerting](docs/monitoring-logging-alerting.md)
+- [Testing and validation](docs/testing-and-validation.md)
+- [Known limitations and improvements](docs/known-limitations-and-improvements.md)
+- [Final assessment report](docs/final-assessment-report.md)
